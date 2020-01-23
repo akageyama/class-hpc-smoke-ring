@@ -56,6 +56,7 @@ module solver_m
   use field_m      ! 流れ場データ構造体
   use debug_m      ! デバッグ用
   use job_m        ! ジョブ管理
+  use watch_m      ! ストップウォッチ
   implicit none    ! 暗黙の型宣言無効化。必須
 
   private ! このモジュール内の変数・ルーチン等はデフォルトで非公開
@@ -472,13 +473,16 @@ contains
       ! サイズが大きいことに注意。
 
 
+                                   ;call watch__start('solv a')
     !---ルンゲ・クッタの第1段---!
     call subfield_vel_tm_divv(fluid,vel,tm,divv)
+                                   ;call watch__('solv a', 'subfld')
       ! 基本変数から副次的変数である速度、温度、速度の発散を求める
     dfluid01 = the_equation(t, dt,  &
                             vel%x, vel%y, vel%z, tm, divv,  &
                             fluid%flux%x, fluid%flux%y, fluid%flux%z,  &
                             fluid%pressure)
+                                   ;call watch__('solv a', 'equati')
 
     t = t + dt/2
       ! 渦輪を駆動する力は時刻（t）の関数として設定しているので、
@@ -487,28 +491,35 @@ contains
     !---ルンゲ・クッタの第2段---!
 ![  gluid = fluid + dfluid01*0.5_DR
     dfluid01 = operator_fluid_times_real(dfluid01,0.5_DR)
+                                   ;call watch__('solv a', 'get df')
     gluid    = operator_fluid_add(fluid,dfluid01)
+                                   ;call watch__('solv a', ' gluid')
       ! Fortranコンパイラが自己定義演算子をきちんと処理できる
       ! 場合は上の簡潔な記述の方が（読みやすいので）好ましい。
 
     call subfield_vel_tm_divv(gluid,vel,tm,divv)
+                                   ;call watch__('solv a', 'subfld')
     dfluid02 = the_equation(t, dt,  &
                             vel%x, vel%y, vel%z, tm, divv,  &
                             gluid%flux%x, gluid%flux%y, gluid%flux%z,  &
                             gluid%pressure)
+                                   ;call watch__('solv a', 'equati')
 
     !---ルンゲ・クッタの第3段---!
 ![  gluid = fluid + dfluid02*0.5_DR
     dfluid02 = operator_fluid_times_real(dfluid02,0.5_DR)
     gluid    = operator_fluid_add(fluid,dfluid02)
+                                   ;call watch__('solv a', ' gluid')
       ! Fortranコンパイラが自己定義演算子をきちんと処理できる
       ! 場合は上の簡潔な記述の方が（読みやすいので）好ましい。
 
     call subfield_vel_tm_divv(gluid,vel,tm,divv)
+                                   ;call watch__('solv a', 'subfld')
     dfluid03 = the_equation(t, dt,  &
                             vel%x, vel%y, vel%z, tm, divv,  &
                             gluid%flux%x, gluid%flux%y, gluid%flux%z,  &
                             gluid%pressure)
+                                   ;call watch__('solv a', 'equati')
 
     t = t + dt/2
       ! 繰り返すが、渦輪を駆動する力は時刻（t）の関数として設定しているので、
@@ -517,14 +528,17 @@ contains
     !---ルンゲ・クッタの第4段---!
 ![  gluid = fluid + dfluid03
     gluid = operator_fluid_add(fluid,dfluid03)
+                                   ;call watch__('solv a', ' gluid')
       ! Fortranコンパイラが自己定義演算子をきちんと処理できる
       ! 場合は上の簡潔な記述の方が（読みやすいので）好ましい。
 
     call subfield_vel_tm_divv(gluid,vel,tm,divv)
+                                   ;call watch__('solv a', 'subfld')
     dfluid04 = the_equation(t, dt,  &
                             vel%x, vel%y, vel%z, tm, divv,  &
                             gluid%flux%x, gluid%flux%y, gluid%flux%z,  &
                             gluid%pressure)
+                                   ;call watch__('solv a', 'equati')
 
     !--- 最終結果 ---!
 
@@ -538,14 +552,17 @@ contains
     fluid = operator_fluid_add(fluid,dfluid02)
     fluid = operator_fluid_add(fluid,dfluid03)
     fluid = operator_fluid_add(fluid,dfluid04)
+                                   ;call watch__('solv a', ' fluid')
       ! Fortranコンパイラが自己定義演算子をきちんと処理できる
       ! 場合は一番上の簡潔な記述の方が（読みやすいので）好ましい。
 
     call debug__print("called solver__advance.")
+                                   ;call watch__('solv a', ' debug')
       ! デバッグモードがonの時には毎回メッセージを標準出力に
       ! 書き出す。コードが完成し、product runの段階に入ったら
       ! デバッグモードをoffにすれば、書き出しは抑制される。
       ! この行をコメントアウトする必要はない。
+                                   ;call watch__end('solv a')
   end subroutine solver__advance
 
 

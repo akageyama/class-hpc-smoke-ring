@@ -28,6 +28,7 @@ program main_m
   use slicedata_m  ! 可視化用断面データ出力
   use solver_m     ! ナビエ・ストークス方程式ソルバ
   use job_m        ! ジョブ管理
+  use watch_m      ! ストップウォッチ
   implicit none    ! 暗黙の型宣言無効化。必須
 
   integer(DI) :: nloop ! シミュレーションのループカウンタ
@@ -35,21 +36,26 @@ program main_m
 
   type(field__fluid_t) :: fluid ! 流体場データの構造体
 
+                                   ;call watch__start('  main')
   call params__read
+                                   ;call watch__('  main','params')
     ! パラメーターの読み込み。paramsの後に続くアンダースコア
     ! 二つは、これがparamsモジュールの中にあるサブルーチンの
     ! 呼び出しであることを意味している。paramsモジュールの
     ! 名前はparams_mである。params_mはparams.f90にある。
   call grid%initialize
+                                   ;call watch__('  main','grid i')
     ! gridモジュールの初期化。
     ! パーセント記号はメンバアクセス演算子。
     ! ここでは構造体のメンバー関数の呼び出しをしている。
     ! gridモジュール（grid_m）はgrid.f90で定義されている。
   call solver__initialize(fluid)
+                                   ;call watch__('  main','solv i')
     ! solverジュール（solver_m）の初期化。ここでは上の
     ! gridモジュールの場合と異なりメンバアクセス演算子
     ! （パーセント記号）を使っていない理由は特にない。
   call slicedata__initialize
+                                   ;call watch__('  main','slic i')
     ! slicedataモジュールの初期化。
     ! このモジュールはシミュレーション領域の断面図を出力する。
 
@@ -57,12 +63,14 @@ program main_m
   nloop = 0      ! ループカウンタの初期化。
 
   call solver__diagnosis(nloop,time,fluid)
+                                   ;call watch__('  main','solv d')
     ! solverモジュールで定義されているdiagnosis（診断）
     ! サブルーチンを呼び出す。医者が患者を診るのがdiagnosis
     ! である。そこでの診断結果はjobモジュールのjob__carte
     ! という構造体にセットする。carteはカルテである。
 
   dt = solver__set_time_step(nloop,fluid)
+                                   ;call watch__('  main','dt set')
     ! 時間刻み幅 dt の決定。dtはCFL条件を満足するように決めるが、
     ! CFL条件は流体の状態に流体の状態に依存して変化する。
     ! たとえば、流体の一部が高温になると、そこでの音速が速くなり、
@@ -70,18 +78,22 @@ program main_m
     ! ここでは初期状態における流体の状態に基づいてdtが決まる
 
   do while(job__karte%state=="fine")
+                                   ;call watch__count
     ! このシミュレーションのメインループである。ジョブカルテが
     ! 「健康 (fine)」状態である限りシミュレーションを続行する。 
     call debug__print("running. nloop=",nloop)
+                                   ;call watch__('  main',' debug')
       ! このdebugモジュール中の標準出力書き出しルーチンの
       ! 呼び出し。通常のプリント文と異なりデバッグフラグがtrue 
       ! の時だけメッセージを書き出すような仕組みにしている。
       ! デバッグフラグがfalseのときには何も書き出さない。
       ! デバッグフラグはparamsモジュール内で定義している。
     call solver__advance(time,dt,fluid)
+                                   ;call watch__('  main','solv a')
       ! ナビエ・ストークス方程式に基づいて流体 (fluid) の状態を
       ! 一時刻ステップ dt だけ進める。
     dt = solver__set_time_step(nloop,fluid)
+                                   ;call watch__('  main','dt set')
       ! 流体の状態が変わったのでCFL条件に基づき時間刻み幅dt
       ! を設定し直す。
       ! 厳密に言えば毎ステップこの再設定をしているわけではなく、
@@ -92,8 +104,10 @@ program main_m
 
     nloop = nloop + 1  ! ループカウンタのインクリメント
     call solver__diagnosis(nloop,time,fluid)
+                                   ;call watch__('  main','solv d')
       ! 診断。異常があればjob__carteにセットする。
     call slicedata__write(nloop,time,fluid)
+                                   ;call watch__('  main','slic w')
       ! 断面データのディスクへの書き出し
     if (nloop>=params__get_integer('Total_nloop'))  &
       call job__karte%set("loop_max")
@@ -102,5 +116,8 @@ program main_m
   end do
 
   call job__finalize(nloop)
+                                   ;call watch__('  main','job fi')
       ! ジョブの後始末。実際にはメーセージを標準出力に書くだけ。
+                                   ;call watch__end('  main')
+                                   ;call watch__print
 end program main_m

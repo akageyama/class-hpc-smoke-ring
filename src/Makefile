@@ -34,6 +34,7 @@ OBJS = constants.o \
        field.o \
        slicedata.o \
        solver.o \
+       watch.o \
        main.o
 
 data: smoke_ring params.namelist
@@ -48,7 +49,7 @@ params.o: constants.o ut.o
 debug.o: constants.o ut.o params.o
 field.o: constants.o grid.o
 slicedata.o: ut.o field.o params.o debug.o solver.o
-solver.o: constants.o grid.o ut.o field.o debug.o params.o job.o
+solver.o: constants.o grid.o ut.o field.o debug.o params.o job.o watch.o
 job.o: constants.o ut.o
 main.o: constants.o \
         ut.o \
@@ -58,6 +59,7 @@ main.o: constants.o \
         debug.o \
         field.o \
         slicedata.o \
+        watch.o \
         solver.o
 
 clean:
